@@ -1,28 +1,36 @@
 const express = require('express');
 const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.use(express.json());
 
-app.post('/download', (req, res) => {
-  const { url } = req.body;
-  if (!url || !url.endsWith('.m3u8')) return res.json({ success: false, error: 'Invalid URL' });
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>M3U8 Downloader</h1>
+    <form method="GET" action="/download">
+      <input type="text" name="url" placeholder="Enter M3U8 URL" size="60" required>
+      <button type="submit">Download</button>
+    </form>
+  `);
+});
 
-  const filename = `video_${Date.now()}.mp4`;
-  const filepath = path.join(__dirname, filename);
+app.get('/download', (req, res) => {
+  const m3u8Url = req.query.url;
+  if (!m3u8Url) return res.send('Please provide a M3U8 URL.');
 
-  const cmd = `ffmpeg -y -i "${url}" -c copy "${filepath}"`;
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) return res.json({ success: false, error: 'Failed to download video.' });
+  const outputFile = `output_${Date.now()}.mp4`;
+  const command = `ffmpeg -i "${m3u8Url}" -c copy ${outputFile}`;
 
-    const fileUrl = `${req.protocol}://${req.get('host')}/files/${filename}`;
-    res.json({ success: true, file: fileUrl });
+  exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error(err);
+      return res.send('Error downloading stream. Check server logs.');
+    }
+    res.download(outputFile, () => {
+      exec(`rm ${outputFile}`); // Clean up after sending
+    });
   });
 });
 
-app.use('/files', express.static(__dirname));
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
