@@ -1,7 +1,7 @@
 {
   "name": "m3u8-downloader",
   "version": "1.0.0",
-  "description": "M3U8 Downloader API",
+  "description": "M3U8 Downloader on Render",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
